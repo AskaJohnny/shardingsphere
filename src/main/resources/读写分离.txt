@@ -1,0 +1,131 @@
+
+
+server:
+  port: 6018
+spring:
+  application:
+    name: ShardingSphere
+
+  shardingsphere:
+    props:
+      sql:
+        show: true
+
+
+    datasource:
+      names: ds0,ds1,ds-slave0,ds-slave1
+      ds0:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.jdbc.Driver
+        jdbc-url: jdbc:mysql://127.0.0.1:3306/order0?useUnicode=true&zeroDateTimeBehavior=convertToNull&characterEncoding=UTF-8&characterSetResults=UTF-8&autoReconnect=true&useSSL=false
+        username: root
+        password: root
+        hikari:
+          minimum-idle: 5
+          idle-timeout: 600000
+          maximum-pool-size: 10
+          auto-commit: true
+          pool-name: MyHikariCP
+          max-lifetime: 1800000
+          connection-timeout: 30000
+          connection-test-query: SELECT 1
+
+      ds-slave0:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.jdbc.Driver
+        jdbc-url: jdbc:mysql://127.0.0.1:6306/order0?useUnicode=true&zeroDateTimeBehavior=convertToNull&characterEncoding=UTF-8&characterSetResults=UTF-8&autoReconnect=true&useSSL=false
+        username: root
+        password: 123456
+        hikari:
+          minimum-idle: 5
+          idle-timeout: 600000
+          maximum-pool-size: 10
+          auto-commit: true
+          pool-name: MyHikariCP
+          max-lifetime: 1800000
+          connection-timeout: 30000
+          connection-test-query: SELECT 1
+
+      ds1:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.jdbc.Driver
+        jdbc-url: jdbc:mysql://127.0.0.1:4306/order1?useUnicode=true&zeroDateTimeBehavior=convertToNull&characterEncoding=UTF-8&characterSetResults=UTF-8&autoReconnect=true&useSSL=false
+        username: root
+        password: 123456
+        hikari:
+          minimum-idle: 5
+          idle-timeout: 600000
+          maximum-pool-size: 10
+          auto-commit: true
+          pool-name: MyHikariCP
+          max-lifetime: 1800000
+          connection-timeout: 30000
+          connection-test-query: SELECT 1
+
+      # 配置一个 ds1的 从库
+      ds-slave1:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.jdbc.Driver
+        jdbc-url: jdbc:mysql://127.0.0.1:5306/order1?useUnicode=true&zeroDateTimeBehavior=convertToNull&characterEncoding=UTF-8&characterSetResults=UTF-8&autoReconnect=true&useSSL=false
+        username: root
+        password: 123456
+        hikari:
+          minimum-idle: 5
+          idle-timeout: 600000
+          maximum-pool-size: 10
+          auto-commit: true
+          pool-name: MyHikariCP
+          max-lifetime: 1800000
+          connection-timeout: 30000
+          connection-test-query: SELECT 1
+
+
+
+
+    sharding:
+      default-database-strategy:
+        inline:
+          sharding-column: user_id
+          algorithm-expression: ds$->{user_id % 2}
+      binding-tables: tb_order
+      tables:
+        tb_order:
+          actual-data-nodes: ds$->{0..1}.tb_order$->{0..1}
+          table-strategy.inline.sharding-column: order_id
+          table-strategy.inline.algorithm-expression: tb_order$->{order_id % 2}
+
+
+      master-slave-rules:
+        ds0:
+          master-data-source-name: ds0
+          slave-data-source-names: ds-slave0
+        ds1:
+          master-data-source-name: ds1
+          slave-data-source-names: ds-slave1
+
+
+    masterslave:
+      load-balance-algorithm-type: ROUND_ROBIN
+
+
+    #读写分离
+
+  jpa:
+    database: mysql
+    show-sql: true
+    open-in-view: true
+    hibernate:
+      ddl-auto: update
+      naming:
+        strategy: org.hibernate.cfg.DefaultComponentSafeNamingStrategy
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+        format_sql: true
+
+
+
+
+
+
+
